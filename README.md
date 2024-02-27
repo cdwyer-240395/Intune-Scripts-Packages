@@ -1,3 +1,5 @@
+ZIP also included for easy download of all files for necessary package.
+
 Installation:
 
 An Intune package is provided for ease of deployment. Simply upload this package to Intune, and it will execute the pre-configured login script automatically upon user login.
