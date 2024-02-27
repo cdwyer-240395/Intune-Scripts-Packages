@@ -1,4 +1,4 @@
-ZIP also included for easy download of all files for necessary package.
+Zipped file also included for easy download.
 
 Installation:
 
