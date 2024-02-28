@@ -1,4 +1,4 @@
-Zipped file also included for easy download.
+----If you wish to repackage the app yourself, please ensure all files and folders are in a source folder for the winpreptool----
 
 Installation:
 
