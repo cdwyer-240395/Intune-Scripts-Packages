@@ -2,33 +2,27 @@
 $sourceFolder = Join-Path -Path $PSScriptRoot -ChildPath "GroupPolicy"
 $destinationFolder = "$env:windir\System32\GroupPolicy"
 
-# Take ownership of the destination folder
-takeown /f $destinationFolder /r /d y
-
-# Set initial full control permissions for 'Everyone', 'Administrators', and 'SYSTEM'
-$acl = Get-Acl $destinationFolder
-$permissionRules = @(
-    New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"),
-    New-Object System.Security.AccessControl.FileSystemAccessRule("Administrators", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"),
-    New-Object System.Security.AccessControl.FileSystemAccessRule("SYSTEM", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
-)
-
-foreach ($rule in $permissionRules) {
-    $acl.SetAccessRule($rule)
-}
-Set-Acl $destinationFolder $acl
+# Take ownership and set initial full control permissions for 'Everyone'
+Takeown /f $destinationFolder /r /d y
+Icacls $destinationFolder /grant Everyone:(OI)(CI)F /t
 
 # Mirror the directory structure and files from source to destination
-# Added /IS to include same files, forcefully replacing them
-robocopy $sourceFolder $destinationFolder /MIR /COPYALL /IS /R:5 /W:1
+Robocopy $sourceFolder $destinationFolder /MIR /COPYALL /IS /R:5 /W:1
 
-# Modify permissions to Read and Execute for 'Everyone' after copying
-$readExecuteRule = New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone", "ReadAndExecute", "ContainerInherit,ObjectInherit", "None", "Allow")
-$acl = Get-Acl $destinationFolder
-$acl.SetAccessRule($readExecuteRule)
-Set-Acl $destinationFolder $acl
+# Remove 'Everyone' full control permissions
+Icacls $destinationFolder /remove Everyone /t
 
-# Propagate the final permissions to all sub-items
-Get-ChildItem $destinationFolder -Recurse | ForEach-Object {
-    Set-Acl $_.FullName $acl
-}
+# Remove 'Users' full control permissions and set Read & Execute permissions
+Icacls $destinationFolder /remove "Users" /t
+$usersReadExecutePermission = "Users:(OI)(CI)RX"
+Icacls $destinationFolder /grant $usersReadExecutePermission
+
+# Set full control permissions for 'Administrators' and 'SYSTEM'
+$adminsFullControlPermission = "Administrators:(OI)(CI)F"
+$systemFullControlPermission = "SYSTEM:(OI)(CI)F"
+Icacls $destinationFolder /grant $adminsFullControlPermission
+Icacls $destinationFolder /grant $systemFullControlPermission
+
+# Set the owner to 'SYSTEM'
+$systemSecurityIdentifier = New-Object System.Security.Principal.NTAccount("SYSTEM")
+Icacls $destinationFolder /setowner $systemSecurityIdentifier /t
